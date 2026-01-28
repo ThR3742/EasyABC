@@ -4203,7 +4203,7 @@ class MainFrame(wx.Frame):
 
         # 1.3.6.3 [JWdJ] 2015-04-21 ABC Assist added
         from abc_assist_panel import AbcAssistPanel  # 1.3.7.1 [JWDJ] 2016-1 because of translation this import has to be done as late as possible
-        self.abc_assist_panel = AbcAssistPanel(self, self.editor, cwd, self.settings)
+        self.abc_assist_panel = AbcAssistPanel(self, self.editor, cwd, self.settings, is_dark_mode=is_dark_mode)
         self.assist_pane = aui.AuiPaneInfo().Name("abcassist").CaptionVisible(True).Caption(_("ABC assist")).\
             CloseButton(True).MinimizeButton(False).MaximizeButton(False).\
             Left().Layer(1).Position(1).BestSize(300, 600) # .PaneBorder(False) # Fixed()
