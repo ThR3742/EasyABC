@@ -292,8 +292,9 @@ class SvgPage(object):
 
 
 class SvgRenderer(object):
-    def __init__(self, can_draw_sharps_and_flats, highlight_color, highlight_follow_color = None):
+    def __init__(self, can_draw_sharps_and_flats, highlight_color, highlight_follow_color = None, is_dark_mode=False):
         self.can_draw_sharps_and_flats = can_draw_sharps_and_flats
+        self.is_dark_mode = is_dark_mode
         self.path_cache = {}
         self.fill_cache = {}
         self.stroke_cache = {}
@@ -326,6 +327,27 @@ class SvgRenderer(object):
             self.transform_point = self.transform_point_osx
         else:
             self.transform_point = self.transform_point_normal
+
+    def get_background_brush(self):
+        """Return appropriate background brush based on dark mode."""
+        if self.is_dark_mode:
+            return wx.Brush(wx.Colour(30, 30, 30))
+        return wx.WHITE_BRUSH
+
+    def get_effective_color(self, color):
+        """Invert color for dark mode if needed."""
+        if not self.is_dark_mode:
+            return color
+        # Invert black/white
+        if color == 'black':
+            return 'white'
+        if color == 'white':
+            return 'black'
+        if color == '#000000':
+            return '#FFFFFF'
+        if color == '#FFFFFF' or color == '#ffffff':
+            return '#000000'
+        return color
 
     def destroy(self):
         if self.renderer:
@@ -391,7 +413,7 @@ class SvgRenderer(object):
     def clear(self):
         if self.buffer:
             dc = wx.MemoryDC(self.buffer)
-            dc.SetBackground(wx.WHITE_BRUSH)
+            dc.SetBackground(self.get_background_brush())
             dc.Clear()
 
     def draw_notes(self, page, note_indices, highlight, dc=None, highlight_follow=False ):
@@ -414,7 +436,7 @@ class SvgRenderer(object):
         dc = dc or wx.MemoryDC(self.buffer)
         ##print 'draw', self.buffer.GetWidth(), self.buffer.GetHeight()
         if clear_background:
-            dc.SetBackground(wx.WHITE_BRUSH)
+            dc.SetBackground(self.get_background_brush())
             dc.Clear()
         #h = dc.Size[1] # for simulating OSX
         gc = wx.GraphicsContext.Create(dc)
@@ -426,7 +448,7 @@ class SvgRenderer(object):
         page.note_draw_info = []
         gc.PushState()
         gc.Scale(self.zoom, self.zoom)
-        self.draw_svg_element(page, gc, page.root_group, False, page.base_color, {})
+        self.draw_svg_element(page, gc, page.root_group, False, self.get_effective_color(page.base_color), {})
         gc.PopState()
 
         # in order to reveal all the sensitive areas in the music pane,
@@ -577,6 +599,7 @@ class SvgRenderer(object):
                 dc.ConcatTransform(dc.CreateMatrix(*args))
 
     def set_fill(self, dc, svg_fill):
+        # Note: color should already be transformed before reaching here
         # 1.3.6.3 [JWDJ] 2015-3 search cache once instead of twice
         brush = self.fill_cache.get(svg_fill)
         if brush is None:
@@ -594,6 +617,7 @@ class SvgRenderer(object):
         dc.SetBrush(brush)
 
     def set_stroke(self, dc, svg_stroke, line_width=1.0, linecap='butt', dasharray=None):
+        # Note: color should already be transformed before reaching here
         #Patch to avoid to have too dim lines for staff, bar, note stems
         if line_width < 1:
             line_width = 1.0
@@ -700,7 +724,7 @@ class SvgRenderer(object):
                     else:
                         m = self.color_re.match(part)
                         if m:
-                            current_color = m.group(1).upper()
+                            current_color = self.get_effective_color(m.group(1).upper())
                         key = part[:part.index(':')]
                         value = part[part.index(':')+1:].strip()
                         if (value != 'inherit'):
@@ -716,21 +740,27 @@ class SvgRenderer(object):
             fill = attr.get('fill')
             if fill is None and name == 'circle':
                 fill = current_color # 1.3.6.4 To draw the two dots in !segno!
+            if fill is None and name in ('path', 'ellipse', 'rect', 'polygon'):
+                fill = current_color  # Default to current_color for shapes without explicit fill
             if fill is not None:
                 if fill == 'currentColor':
-                    fill = current_color
+                    fill = current_color  # current_color is already inverted
+                elif fill not in ('none',):
+                    fill = self.get_effective_color(fill)  # Invert literal colors from SVG
 
                 if highlight and fill != 'none':
                     if highlight_follow:
                         fill = self.highlight_follow_color
                     else:
-                        fill = self.highlight_color    
+                        fill = self.highlight_color
 
                 self.set_fill(dc, fill)
 
             stroke = attr.get('stroke', 'none')
             if stroke == 'currentColor':
-                stroke = current_color
+                stroke = current_color  # current_color is already inverted
+            elif stroke not in ('none',):
+                stroke = self.get_effective_color(stroke)  # Invert literal colors from SVG
 
             if highlight and stroke != 'none':
                 if highlight_follow:
@@ -844,7 +874,7 @@ class SvgRenderer(object):
             else:
                 wxfont.SetPointSize(font_size)
 
-            font = dc.CreateFont(wxfont, wx_colour(attr.get('fill', 'black')))
+            font = dc.CreateFont(wxfont, wx_colour(self.get_effective_color(attr.get('fill', 'black'))))
             dc.SetFont(font)
 
             (width, height, descent, externalLeading) = dc.GetFullTextExtent(text)

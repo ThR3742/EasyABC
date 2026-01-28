@@ -1596,7 +1596,7 @@ class MusicPrintout(wx.Printout):
         #new versions of abcm2ps adds a suffix 'in' to width and height
         #new versions of abcm2ps adds a suffix 'px' to width and height
         # 1.3.7.3 [JWDJ] use svg renderer to calculate width and height
-        renderer = SvgRenderer(self.can_draw_sharps_and_flats, highlight_color='#000000')
+        renderer = SvgRenderer(self.can_draw_sharps_and_flats, highlight_color='#000000', is_dark_mode=is_dark_mode)
         try:
             page = renderer.svg_to_page(svg)
 
@@ -4186,9 +4186,12 @@ class MainFrame(wx.Frame):
         self.editor.SetMarginType(1,stc.STC_MARGIN_NUMBER)
 
         # 1.3.6.2 [JWdJ] 2015-02
-        self.renderer = SvgRenderer(self.settings['can_draw_sharps_and_flats'], self.settings.get('note_highlight_color', default_note_highlight_color), self.settings.get('note_highlight_follow_color', default_note_highlight_follow_color))#'#FF0000')
+        self.renderer = SvgRenderer(self.settings['can_draw_sharps_and_flats'], self.settings.get('note_highlight_color', default_note_highlight_color), self.settings.get('note_highlight_follow_color', default_note_highlight_follow_color), is_dark_mode=is_dark_mode)#'#FF0000')
         self.music_pane = MusicScorePanel(self, self.renderer)
-        self.music_pane.SetBackgroundColour((255, 255, 255))
+        if is_dark_mode:
+            self.music_pane.SetBackgroundColour(wx.Colour(30, 30, 30))
+        else:
+            self.music_pane.SetBackgroundColour((255, 255, 255))
         self.music_pane.OnNoteSelectionChangedDesc = self.OnNoteSelectionChangedDesc
 
         error_font_size = get_normal_fontsize() # 1.3.6.3 [JWDJ] one function to set font size
