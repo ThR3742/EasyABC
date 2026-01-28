@@ -172,7 +172,7 @@ class NWCConversionException(Exception): pass
 
 from abc_tune import *
 
-dialog_background_colour = wx.Colour(245, 244, 235)
+dialog_background_colour = None  # Initialized after wx.App creation
 default_note_highlight_color = '#FF7F3F'
 default_note_highlight_follow_color = '#CC00FF'
 #default_style_color = {
@@ -9400,6 +9400,7 @@ class MyApp(wx.App):
         return True
 
 app = MyApp(0)
+dialog_background_colour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW)
 
 #import wx.lib.inspection
 #wx.lib.inspection.InspectionTool().Show()
