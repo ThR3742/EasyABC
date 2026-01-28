@@ -213,6 +213,34 @@ default_style_color = {
     'style_ornamentexcl_color':'#015692'
 }
 
+# Dark mode color scheme (light colors for dark backgrounds)
+default_dark_style_color = {
+    'style_default_color':'#E0E0E0',
+    'style_chord_color':'#E0E0E0',
+    'style_comment_color':'#9DA5AD',
+    'style_specialcomment_color':'#D19ED1',
+    'style_bar_color':'#6699FF',
+    'style_field_color':'#FFB366',
+    'style_fieldvalue_color':'#FFB366',
+    'style_embeddedfield_color':'#FFB366',
+    'style_embeddedfieldvalue_color':'#FFB366',
+    'style_fieldindex_color':'#FFFFFF',
+    'style_string_color':'#7FBF8F',
+    'style_lyrics_color':'#8FBF8F',
+    'style_grace_color':'#CFAA7F',
+    'style_ornament_color':'#6EB5FF',
+    'style_ornamentplus_color':'#6EB5FF',
+    'style_ornamentexcl_color':'#6EB5FF'
+}
+
+is_dark_mode = None  # Initialized after wx.App creation
+
+def get_effective_style_color():
+    """Return the appropriate color scheme based on dark mode setting."""
+    if is_dark_mode:
+        return default_dark_style_color
+    return default_style_color
+
 control_margin = 6
 default_midi_volume = 96
 default_midi_pan = 64
@@ -8559,29 +8587,40 @@ class MainFrame(wx.Frame):
 
         editor.SetProperty("fold", "0")
         set_style = editor.StyleSetSpec
-        set_style(self.styler.STYLE_DEFAULT, "fore:%s,face:%s,size:%d" % (self.settings.get('style_default_color',default_style_color['style_default_color']), font, size))
-        set_style(self.styler.STYLE_CHORD, "fore:%s,face:%s,size:%d" % (self.settings.get('style_chord_color',default_style_color['style_chord_color']), font, size))
+
+        # Set editor background color based on dark mode
+        effective_colors = get_effective_style_color()
+        if is_dark_mode:
+            editor.StyleSetBackground(stc.STC_STYLE_DEFAULT, wx.Colour(30, 30, 30))
+            editor.SetCaretForeground(wx.Colour(255, 255, 255))
+        else:
+            editor.StyleSetBackground(stc.STC_STYLE_DEFAULT, wx.Colour(255, 255, 255))
+            editor.SetCaretForeground(wx.Colour(0, 0, 0))
+        editor.StyleClearAll()  # Propagate background to all styles
+
+        set_style(self.styler.STYLE_DEFAULT, "fore:%s,face:%s,size:%d" % (self.settings.get('style_default_color', effective_colors['style_default_color']), font, size))
+        set_style(self.styler.STYLE_CHORD, "fore:%s,face:%s,size:%d" % (self.settings.get('style_chord_color', effective_colors['style_chord_color']), font, size))
         # Comments
-        set_style(self.styler.STYLE_COMMENT_NORMAL, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_comment_color',default_style_color['style_comment_color']), font, size))
-        set_style(self.styler.STYLE_COMMENT_SPECIAL, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_specialcomment_color',default_style_color['style_specialcomment_color']), font, size))
+        set_style(self.styler.STYLE_COMMENT_NORMAL, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_comment_color', effective_colors['style_comment_color']), font, size))
+        set_style(self.styler.STYLE_COMMENT_SPECIAL, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_specialcomment_color', effective_colors['style_specialcomment_color']), font, size))
         # Bar
-        set_style(self.styler.STYLE_BAR, "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_bar_color',default_style_color['style_bar_color']), font, size))
+        set_style(self.styler.STYLE_BAR, "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_bar_color', effective_colors['style_bar_color']), font, size))
         # Field
-        set_style(self.styler.STYLE_FIELD,                "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_field_color',default_style_color['style_field_color']), font, size))
-        set_style(self.styler.STYLE_FIELD_VALUE,          "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_fieldvalue_color',default_style_color['style_fieldvalue_color']), font, size))
-        set_style(self.styler.STYLE_EMBEDDED_FIELD,       "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_embeddedfield_color',default_style_color['style_embeddedfield_color']), font, size))
-        set_style(self.styler.STYLE_EMBEDDED_FIELD_VALUE, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_embeddedfieldvalue_color',default_style_color['style_embeddedfieldvalue_color']), font, size))
-        set_style(self.styler.STYLE_FIELD_INDEX,          "fore:%s,face:%s,bold,underline,size:%d" % (self.settings.get('style_fieldindex_color',default_style_color['style_fieldindex_color']), font, size))
+        set_style(self.styler.STYLE_FIELD,                "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_field_color', effective_colors['style_field_color']), font, size))
+        set_style(self.styler.STYLE_FIELD_VALUE,          "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_fieldvalue_color', effective_colors['style_fieldvalue_color']), font, size))
+        set_style(self.styler.STYLE_EMBEDDED_FIELD,       "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_embeddedfield_color', effective_colors['style_embeddedfield_color']), font, size))
+        set_style(self.styler.STYLE_EMBEDDED_FIELD_VALUE, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_embeddedfieldvalue_color', effective_colors['style_embeddedfieldvalue_color']), font, size))
+        set_style(self.styler.STYLE_FIELD_INDEX,          "fore:%s,face:%s,bold,underline,size:%d" % (self.settings.get('style_fieldindex_color', effective_colors['style_fieldindex_color']), font, size))
         # Single quoted string
-        set_style(self.styler.STYLE_STRING, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_string_color',default_style_color['style_string_color']), font, size))
+        set_style(self.styler.STYLE_STRING, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_string_color', effective_colors['style_string_color']), font, size))
         # Lyrics
-        set_style(self.styler.STYLE_LYRICS, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_lyrics_color',default_style_color['style_lyrics_color']), font, size))
+        set_style(self.styler.STYLE_LYRICS, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_lyrics_color', effective_colors['style_lyrics_color']), font, size))
 
-        set_style(self.styler.STYLE_GRACE, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_grace_color',default_style_color['style_grace_color']), font, size))
+        set_style(self.styler.STYLE_GRACE, "fore:%s,face:%s,italic,size:%d" % (self.settings.get('style_grace_color', effective_colors['style_grace_color']), font, size))
 
-        set_style(self.styler.STYLE_ORNAMENT, "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_ornament_color',default_style_color['style_ornament_color']), font, size))
-        set_style(self.styler.STYLE_ORNAMENT_PLUS, "fore:%s,face:%s,size:%d" % (self.settings.get('style_ornamentplus_color',default_style_color['style_ornamentplus_color']), font, size))
-        set_style(self.styler.STYLE_ORNAMENT_EXCL, "fore:%s,face:%s,size:%d" % (self.settings.get('style_ornamentexcl_color',default_style_color['style_ornamentexcl_color']), font, size))
+        set_style(self.styler.STYLE_ORNAMENT, "fore:%s,face:%s,bold,size:%d" % (self.settings.get('style_ornament_color', effective_colors['style_ornament_color']), font, size))
+        set_style(self.styler.STYLE_ORNAMENT_PLUS, "fore:%s,face:%s,size:%d" % (self.settings.get('style_ornamentplus_color', effective_colors['style_ornamentplus_color']), font, size))
+        set_style(self.styler.STYLE_ORNAMENT_EXCL, "fore:%s,face:%s,size:%d" % (self.settings.get('style_ornamentexcl_color', effective_colors['style_ornamentexcl_color']), font, size))
 
         editor.SetModEventMask(wx.stc.STC_MODEVENTMASKALL & ~(wx.stc.STC_MOD_CHANGESTYLE | wx.stc.STC_PERFORMED_USER)) # [1.3.7.4] JWDJ: don't fire OnModified on style changes
         editor.Colourise(0, editor.GetLength())
@@ -9340,7 +9379,15 @@ class MyApp(wx.App):
             self.frame.load_or_import(path)
 
     def OnInit(self):
+        global is_dark_mode, dialog_background_colour
         try:
+            # Detect dark mode early (wxPython 4.1+)
+            try:
+                is_dark_mode = wx.SystemSettings.GetAppearance().IsDark()
+            except AttributeError:
+                is_dark_mode = False
+            dialog_background_colour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW)
+
             self.SetAppName('EasyABC')
             #wx.SystemOptions.SetOptionInt('msw.window.no-clip-children', 1)
             app_dir = self.app_dir = wx.StandardPaths.Get().GetUserLocalDataDir()
@@ -9400,7 +9447,6 @@ class MyApp(wx.App):
         return True
 
 app = MyApp(0)
-dialog_background_colour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW)
 
 #import wx.lib.inspection
 #wx.lib.inspection.InspectionTool().Show()
